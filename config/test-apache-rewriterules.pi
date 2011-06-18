@@ -1,0 +1,32 @@
+{
+    main_module_name => 'Test::Apache::RewriteRules',
+    file_names => [qw(
+        lib/Test/Apache/RewriteRules.pm
+        lib/Test/Apache/RewriteRules.pod
+        lib/Test/Apache/RewriteRules/ClientEnvs.pm
+        lib/Test/Apache/RewriteRules/ClientEnvs.pod
+        lib/Test/Apache/RewriteRules/url.cgi
+        lib/Test/Apache/RewriteRules/modules.conf
+        t/test/apache-rewriterules.t
+        t/test/apache-rewriterules-clientenvs.t
+        t/test/apache-rewriterules-alias.conf
+        t/test/apache-rewriterules-rewrite.conf
+        config/test-apache-rewriterules.pi
+    )],
+    req_modules => {
+        'File::Temp' => 0,
+        'Time::HiRes' => 0,
+        'Exporter::Lite' => 0,
+        'HTTP::Request' => 0,
+        'LWP::UserAgent' => 0,
+        'Path::Class' => 0,
+        'Test::More' => 0,
+        'Test::Differences' => 0,
+        'Net::TCP::FindPort' => 0,
+    },
+    t_req_modules => {
+        'Test::MoreMore' => 0,
+        'Test::Test::More' => 0,
+    },
+};
+
