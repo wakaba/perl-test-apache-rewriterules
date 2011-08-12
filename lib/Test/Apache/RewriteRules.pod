@@ -22,6 +22,7 @@ Test::Apache::RewriteRules - Testing Apache's Rewrite Rules
   $apache->is_host_path(q</baz>, '', q</baz>,
                         'Handled by the proxy itself');
   $apache->is_redirect(q</hoge/z>, q<http://external.test/z>);
+  $apache->is_status_code(q</secret>, 403);
   
   $apache->stop_apache;
 
@@ -80,7 +81,7 @@ C<RewriteRule>s' part of the Apache configuration to test.
 Boots the Apache process.  It should be invoked before any
 C<is_host_path> call.
 
-=item $apache->is_host_path(REQUEST_PATH, EXPECTED_HOST_NAME, EXPECTED_PATH, [NAME]);
+=item $apache->is_host_path(REQUEST_PATH, EXPECTED_HOST_NAME, EXPECTED_PATH, [NAME])
 
 Checks whether the request for I<REQUEST_PATH> is handled by host
 C<EXPECTED_HOST_NAME> with path C<EXPECTED_PATH>.  The host name
@@ -90,7 +91,7 @@ reverse proxy (i.e. the rewriting host) itself.  This method acts as a
 test function of L<Test::Builder> or L<Test::More>.  The argument
 I<NAME>, if specified, represents the name of the test.
 
-=item $apache->is_redirect(REQUEST_PATH, EXPECTED_REDIRECT_URL, [NAME], [code => CODE]);
+=item $apache->is_redirect(REQUEST_PATH, EXPECTED_REDIRECT_URL, [NAME], [code => CODE])
 
 Checks whether the request for I<REQUEST_PATH> is HTTP-redirected to
 the I<EXPECTED_REDIRECT_URL>.  This method acts as a test function of
@@ -100,6 +101,12 @@ specified, represents the name of the test.
 Optionally, you can specify the expected HTTP status code.  The
 default status code is C<302> (Found).
 
+=item $apache->is_status_code(REQUEST_PATH, EXPECTED_STATUS_CODE, [NAME])
+
+Checks whether the response returned for a request for I<REQUEST_PATH>
+has status code of I<EXPECTED_REQUEST_CODE>.  The argument I<NAME>, if
+specified, represents the name of the test.
+
 =item $apache->stop_apache
 
 Shuts down the Apache process.
@@ -107,13 +114,13 @@ Shuts down the Apache process.
 =back
 
 You can set the expected client environment used to evaluate
-C<is_host_path> and C<is_redirect> by using
-L<Test::Apache::RewriteRules::ClientEnvs> module.
+C<is_host_path>, C<is_redirect>, and C<is_status_code> by code blocks
+provided by L<Test::Apache::RewriteRules::ClientEnvs> module.
 
-Where I<REQUEST_PATH> is expected, the host of the request (used in
-the C<Host:> request header field) can be specified by prepending
-C<//> followed by host (hostname possibly followed by C<:> and port
-number) before the real path.
+Where I<REQUEST_PATH> is expected, the host for the request (as used
+in the HTTP C<Host:> request header field) can be specified by
+prepending C<//> followed by host (hostname optionally followed by
+C<:> and port number) before the real path.
 
 =head1 EXAMPLES
 
@@ -128,6 +135,10 @@ C<t/test/apache-rewriterules*.conf>.
 
 Initial released version.
 
+=item 1.1
+
+Added C<is_status_code> method.
+
 =back
 
 =head1 SEE ALSO
@@ -138,13 +149,22 @@ L<Test::More>.
 
 L<Test::Apache::RewriteRules::ClientEnvs>.
 
+Test::Apache::RewriteRules で mod_rewrite のテストを書こう, id:onishi,
+October 17, 2010, <http://d.hatena.ne.jp/onishi/20101017/1287277579>
+(In Japanese).
+
 =head1 AUTHOR
 
 Wakaba (id:wakabatan) <wakabatan@hatena.ne.jp>.
 
+=head1 ACKNOWLEDGEMENTS
+
+Thanks to Kentaro Kuribayashi (id:antipop) and id:shiba_yu36 for their
+contributions.
+
 =head1 LICENSE
 
-Copyright 2010 Hatena <http://www.hatena.ne.jp/>.
+Copyright 2010-2011 Hatena <http://www.hatena.ne.jp/>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

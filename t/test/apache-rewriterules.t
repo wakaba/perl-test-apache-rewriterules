@@ -77,6 +77,42 @@ sub _is_redirect : Test(3) {
     $apache->stop_apache;
 }
 
+sub _is_status_code : Test(4) {
+    my $apache = Test::Apache::RewriteRules->new;
+    $apache->add_backend(name => 'BackendFoo');
+    $apache->add_backend(name => 'BackendBar');
+    $apache->rewrite_conf_f($rewrite_conf_f);
+
+    $apache->start_apache;
+
+    test_ok_ok {
+        $apache->is_status_code(q</status/200> => 200);
+    };
+    test_ok_ok {
+        $apache->is_status_code(q</status/403> => 403);
+    };
+    failure_output_like {
+        $apache->is_status_code(q</status/200> => 403);
+    } qr{\Q
+# +---+-----+----------+
+# | Ln|Got  |Expected  |
+# +---+-----+----------+
+# *  1|200  |403       *
+# +---+-----+----------+
+\E};
+    failure_output_like {
+        $apache->is_status_code(q</status/403> => 200);
+    } qr{\Q
+# +---+-----+----------+
+# | Ln|Got  |Expected  |
+# +---+-----+----------+
+# *  1|403  |200       *
+# +---+-----+----------+
+\E};
+    
+    $apache->stop_apache;
+}
+
 sub _host_in_path : Test(4) {
     my $apache = Test::Apache::RewriteRules->new;
     $apache->add_backend(name => 'BackendFoo');

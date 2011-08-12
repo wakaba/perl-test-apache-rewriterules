@@ -1,7 +1,7 @@
 package Test::Apache::RewriteRules;
 use strict;
 use warnings;
-our $VERSION = '1.0';
+our $VERSION = '1.1';
 use File::Temp qw(tempfile tempdir);
 use Path::Class;
 use Net::TCP::FindPort;
@@ -363,6 +363,17 @@ sub is_redirect {
 
     my $code = $args{code} || 302;
     eq_or_diff $result, "$code $redirect_url\n", $name;
+}
+
+sub is_status_code {
+    local $Test::Builder::Level = $Test::Builder::Level + 1;
+    
+    my ($self, $orig_path => $code, $name) = @_;
+
+    my $result = $self->get_rewrite_result(orig_path => $orig_path);
+    $result = $1 if $result =~ /^([0-9]+)/;
+
+    eq_or_diff $result, $code || 200, $name;
 }
 
 1;
