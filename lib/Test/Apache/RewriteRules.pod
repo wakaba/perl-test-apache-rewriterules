@@ -59,17 +59,36 @@ environment variable whose name is I<HOST_NAME> will be defined in the
 automatically-generated Apache configuration file such that it can be
 used in rewrite rules.
 
-=item $apache->copy_conf_as_f(ORIG_FILE, [PATTERN1 => REPLACE1, PATTERN2 => REPLACE2, ...])
+=item $apache->copy_conf_as_f(ORIG_FILE, [PATTERN1 => REPLACE1, PATTERN2 => REPLACE2, ...], OPTIONS...)
 
-Copies the file represented by the C<Path::Class::File> object into
-the temporary directory and optionally replaces its content by
-applying patterns.  Patterns, if specified, must be an array reference
-containing string or regular expression followed by string or code
-reference.  If the replaced string is specified as a code reference,
-its return value is used for the replacement.  If the pattern is
-specified as a regular expression and the replaced string is specified
-as a code reference, the code reference can use C<$1>, C<$2>, ... to
-access to captured substrings.
+Copies the file represented by the C<Path::Class::File> object given
+as the first argument into the temporary directory and then,
+optionally replaces its content by applying patterns given as the
+second argument.
+
+Patterns, if specified, must be an array reference containing string
+or regular expression followed by string or code reference.  If the
+replaced string is specified as a code reference, its return value is
+used for the replacement.  If the pattern is specified as a regular
+expression and the replaced string is specified as a code reference,
+the code reference can use C<$1>, C<$2>, ... to access to captured
+substrings.
+
+The remaining arguments are interpreted as key-value pairs.  If a
+C<rewrite_include> option is specified, files referenced from the
+specified file using the C<Include> directives are recursively copied
+into the temporary directory.  The value must be a code reference.
+The code is invoked with an argument, the path (string) specified in
+the C<Include> directive, and is expected to return the path (string)
+representing the referenced file in your testing environment.  It
+would be useful if paths specified in configuration files assumes
+different file system layout from your testing environment.
+
+Contents of the referenced files are also replaced using the patterns
+when the C<inherit_patterns> option is also specified.
+
+The method returns the C<Path::Class::File> object representing the
+copied file.
 
 =item $apache->rewrite_conf_f(PATH_CLASS_FILE)
 
@@ -138,6 +157,10 @@ Initial released version.
 =item 1.1
 
 Added C<is_status_code> method.
+
+=item 1.2
+
+Added C<rewrite_include> option.
 
 =back
 

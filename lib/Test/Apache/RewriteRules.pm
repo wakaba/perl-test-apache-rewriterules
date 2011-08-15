@@ -1,7 +1,7 @@
 package Test::Apache::RewriteRules;
 use strict;
 use warnings;
-our $VERSION = '1.1';
+our $VERSION = '1.2';
 use File::Temp qw(tempfile tempdir);
 use Path::Class;
 use Net::TCP::FindPort;
@@ -9,6 +9,8 @@ use LWP::UserAgent;
 use HTTP::Request;
 use Test::Differences;
 use Time::HiRes qw(usleep);
+
+our $DEBUG ||= $ENV{TEST_APACHE_DEBUG};
 
 my $data_d = file(__FILE__)->dir->subdir('RewriteRules')->absolute->cleanup;
 {
@@ -91,10 +93,42 @@ sub rewrite_conf_f {
     return $self->{rewrite_conf_f};
 }
 
+our $CopyDepth = 0;
+
 sub copy_conf_as_f {
-    my ($self, $orig_f, $patterns) = @_;
+    my ($self, $orig_f, $patterns, %args) = @_;
+    my $include = $args{rewrite_include};
+
+    local $CopyDepth = $CopyDepth + 1;
+    
     $patterns ||= [];
+    $patterns = [@$patterns];
     my $conf = $orig_f->slurp;
+    if ($include) {
+        while ($conf =~ /Include\s+"?(.+)"?/g) {
+            my $conf_file_name = $1;
+            my $source_file_name = $include->($conf_file_name);
+            if (exists $self->{copied_conf}->{$source_file_name}) {
+                if ($self->{copied_conf}->{$source_file_name}) {
+                    my $replaced = 'Include ' . $self->{copied_conf}->{$source_file_name};
+                    push @$patterns,
+                        qr{Include\s+"?\Q$conf_file_name\E"?} => $replaced;
+                    warn '  ' x $CopyDepth, "$conf_file_name => $source_file_name => $replaced\n" if $DEBUG;
+                } else {
+                    warn '  ' x $CopyDepth, "$conf_file_name => $source_file_name => $source_file_name\n" if $DEBUG;
+                }
+            } else {
+                $self->{copied_conf}->{$source_file_name} = undef;
+                my $f = $self->copy_conf_as_f(file($source_file_name), $args{inherit_patterns} ? $patterns : [], %args);
+                $self->{copied_conf}->{$source_file_name} = $f;
+                my $replaced = 'Include ' . $f;
+                push @$patterns,
+                    qr{Include\s+"?\Q$conf_file_name\E"?} => $replaced;
+                warn '  ' x $CopyDepth, "$conf_file_name => $source_file_name => $replaced\n" if $DEBUG;
+            }
+        }
+    }
+
     while (@$patterns) {
         my $regexp = shift @$patterns;
         $regexp = ref $regexp eq 'Regexp' ? $regexp : qr/\Q$regexp\E/;

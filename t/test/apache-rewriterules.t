@@ -10,6 +10,8 @@ use Test::Apache::RewriteRules;
 use Test::Test::More;
 
 my $rewrite_conf_f = file(__FILE__)->dir->file('apache-rewriterules-rewrite.conf');
+my $rewrite_recursive_conf_f = file(__FILE__)->dir->file('apache-rewriterules-rewrite-recursive.conf');
+my $rewrite_recursive_d = file(__FILE__)->dir->subdir('apache-rewriterules-rewrite-recursive');
 my $alias_conf_f = file(__FILE__)->dir->file('apache-rewriterules-alias.conf');
 
 sub _is_host_path : Test(7) {
@@ -183,6 +185,40 @@ sub _copy_conf_as_f_changed_rules : Test(2) {
     ]);
     isnt $new_f->stringify, $rewrite_conf_f->stringify;
     is scalar $new_f->slurp, '***';
+}
+
+sub _copy_conf_as_f_recursive : Test(12) {
+    my $apache = Test::Apache::RewriteRules->new;
+    my $new_f = $apache->copy_conf_as_f($rewrite_recursive_conf_f, [
+        
+    ], rewrite_include => sub {
+        my $path = shift;
+        $path =~ s{^/path/to/apache/conf/(.+\.conf)}
+            {$rewrite_recursive_d->file($1)}e;
+        return $path;
+    });
+    isnt $new_f->stringify, $rewrite_conf_f->stringify;
+
+    my $result_root = $new_f->slurp;
+
+    my $i1_f = $apache->{copied_conf}->{$rewrite_recursive_d->file('included1.conf')};
+    ok $i1_f;
+    my $i2_f = $apache->{copied_conf}->{$rewrite_recursive_d->file('included2.conf')};
+    ok $i2_f;
+
+    like $result_root, qr/\# recursive.conf/;
+    like $result_root, qr/\Q@{[$i1_f->stringify]}\E/;
+    like $result_root, qr/\Q@{[$i2_f->stringify]}\E/;
+    
+    isnt $i1_f->stringify, $rewrite_recursive_d->file('included1.conf');
+    my $result_i1 = $i1_f->slurp;
+    like $result_i1, qr/\# included1.conf/;
+    like $result_i1, qr/\Q@{[$i2_f->stringify]}\E/;
+    
+    isnt $i2_f->stringify, $rewrite_recursive_d->file('included2.conf');
+    my $result_i2 = $i2_f->slurp;
+    like $result_i2, qr/\# included2.conf/;
+    unlike $result_i2, qr/\Q@{[$i1_f->stringify]}\E/;
 }
 
 __PACKAGE__->SKIP_CLASS('Apache is not available') unless Test::Apache::RewriteRules->available;
