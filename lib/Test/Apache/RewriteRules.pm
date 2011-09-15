@@ -105,7 +105,7 @@ sub copy_conf_as_f {
     $patterns = [@$patterns];
     my $conf = $orig_f->slurp;
     if ($include) {
-        while ($conf =~ /Include\s+"?(.+)"?/g) {
+        while ($conf =~ /Include\s+"?([^"]+)"?/g) {
             my $conf_file_name = $1;
             my $source_file_name = $include->($conf_file_name);
             if (exists $self->{copied_conf}->{$source_file_name}) {
