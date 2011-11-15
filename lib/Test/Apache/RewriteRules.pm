@@ -237,6 +237,8 @@ Listen $proxy_port
   $backend_setenvs
 
   RewriteRule ^/url\\.cgi/ - [L]
+  RewriteLog logs/rewrite_log
+  RewriteLogLevel 9
 
   Include "$rewrite_conf_f"
 
