@@ -165,8 +165,8 @@ sub copy_conf_as_f {
     
     my $new_name = $orig_f->basename;
     $new_name =~ s/\.[^.]*//g;
-    $new_name .= 'XXXXX';
-    (undef, $new_name) = tempfile($new_name, DIR => $self->server_root_dir_name, SUFFIX => '.conf');
+    $new_name .= 'XX'.'XX'.'XX';
+    (undef, $new_name) = tempfile($new_name, DIR => $self->server_root_dir_name, SUFFIX => '.conf', CLEANUP => !$DEBUG);
 
     my $new_f = file($new_name);
     my $new_file = $new_f->openw;
@@ -178,7 +178,7 @@ sub copy_conf_as_f {
 
 sub server_root_dir_name {
     my $self = shift;
-    return $self->{server_root_dir_name} ||= tempdir;
+    return $self->{server_root_dir_name} ||= tempdir('TEST-APACHE-XX'.'XX'.'XX', TMPDIR => 1, CLEANUP => !$DEBUG);
 }
 
 sub server_root_d {

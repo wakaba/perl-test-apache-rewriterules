@@ -141,7 +141,7 @@ in the HTTP C<Host:> request header field) can be specified by
 prepending C<//> followed by host (hostname optionally followed by
 C<:> and port number) before the real path.
 
-=head1 ENVIRONMENT VARIABLE
+=head1 ENVIRONMENT VARIABLES
 
 If the environment variable L<TEST_APACHE_HTTPD> is set, the value is
 used as the path to the Apache's C<httpd> executable.  If the variable
@@ -151,6 +151,14 @@ value, the value is used as the path to the C<httpd>.  Otherwise, the
 C<httpd> file is searched from commonly-installed paths.  If the
 specified path is invalid, or no C<httpd> is found at all, the module
 bails out.
+
+If the environment variable C<TEST_APACHE_DEBUG> is set to a true
+value, or the Perl global variable
+C<$Test::Apache::RewriteRules::DEBUG> is set to a true value, then the
+debug mode is enabled.  In debug mode, some additional debug messages
+are printed.  Moreover, temporary directories containing
+auto-generated configuration files and log files are not deleted upon
+the termination of the Perl process.
 
 =head1 EXAMPLES
 
