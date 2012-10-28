@@ -3,9 +3,9 @@ use strict;
 use warnings;
 use Path::Class;
 use lib file(__FILE__)->dir->parent->parent->subdir('lib')->stringify;
-use lib glob file(__FILE__)->dir->parent->parent->parent->subdir('*/lib')->stringify;
+use lib glob file(__FILE__)->dir->parent->parent->subdir('t_deps', 'modules', 'test-test', 'lib')->absolute->cleanup->stringify;
 use base qw(Test::Class);
-use Test::MoreMore;
+use Test::More;
 use Test::Apache::RewriteRules;
 use Test::Apache::RewriteRules::ClientEnvs;
 use Test::Test::More;
@@ -172,7 +172,8 @@ sub _with_http_header_field : Test(3) {
     $apache->stop_apache;
 }
 
-__PACKAGE__->SKIP_CLASS('Apache is not available') unless Test::Apache::RewriteRules->available;
+BAIL_OUT 'Apache is not available'
+    unless Test::Apache::RewriteRules->available;
 
 __PACKAGE__->runtests;
 
