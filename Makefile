@@ -10,7 +10,7 @@ local/bin/pmbp.pl:
 	$(WGET) -O $@ https://raw.github.com/wakaba/perl-setupenv/master/bin/pmbp.pl
 
 pmbp-upgrade: local/bin/pmbp.pl
-#	perl local/bin/pmbp.pl --update-pmbp-pl
+	perl local/bin/pmbp.pl --update-pmbp-pl
 
 pmbp-update: pmbp-upgrade
 	perl local/bin/pmbp.pl --update
