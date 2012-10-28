@@ -1,0 +1,8 @@
+Exporter::Lite
+File::Temp
+HTTP::Request
+LWP::UserAgent
+Path::Class
+Test::Differences
+Test::More
+Time::HiRes
