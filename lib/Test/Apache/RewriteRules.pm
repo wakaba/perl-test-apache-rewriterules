@@ -4,7 +4,7 @@ use warnings;
 our $VERSION = '1.2';
 use File::Temp qw(tempfile tempdir);
 use Path::Class;
-use Net::TCP::FindPort;
+use Test::Apache::RewriteRules::Net::TCP::FindPort;
 use LWP::UserAgent;
 use HTTP::Request;
 use Test::Differences;
@@ -40,7 +40,7 @@ sub add_backend {
 
 sub get_next_port {
     my $self = shift;
-    return Net::TCP::FindPort->find_listenable_port;
+    return Test::Apache::RewriteRules::Net::TCP::FindPort->find_listenable_port;
 }
 
 sub proxy_port {

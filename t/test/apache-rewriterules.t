@@ -3,9 +3,9 @@ use strict;
 use warnings;
 use Path::Class;
 use lib file(__FILE__)->dir->parent->parent->subdir('lib')->absolute->cleanup->stringify;
-use lib glob file(__FILE__)->dir->parent->parent->parent->subdir('*/lib')->absolute->cleanup->stringify;
+use lib glob file(__FILE__)->dir->parent->parent->subdir('t_deps', 'modules', 'test-test', 'lib')->absolute->cleanup->stringify;
 use base qw(Test::Class);
-use Test::MoreMore;
+use Test::More;
 use Test::Apache::RewriteRules;
 use Test::Test::More;
 
@@ -34,21 +34,21 @@ sub _is_host_path : Test(7) {
 # \+---\+------------------------+\+------------------------+\+
 # \| Ln\|Got                     +\|Expected                +\|
 # \+---\+------------------------+\+------------------------+\+
-# \|  1\|200                     +\|200                     +\|
+# \|  1\|'?200                   +\|'?200                   +\|
 # \|  2\|localhost:\d+ \(BackendBar\) +\|localhost:\d+ \(BackendBar\) +\|
-# \*  3\|/abc                    +\|/ABC                    +\*
+# \*  3\|/abc'?                  +\|/ABC'?                  +\*
 # \+---\+------------------------+\+------------------------+\+];
 
     failure_output_like {
         $apache->is_host_path(q</hoge/abc?foo> => '', q</baz/abc?foo>);
     } qr[
-# \+---\+--------------------------------\+---\+-------------------+\+
-# \| Ln\|Got                             \| Ln\|Expected           +\|
-# \+---\+--------------------------------\+---\+-------------------+\+
-# \*  1\|302 http://hoge.test/abc\?foo\\n  \*  1\|200\\s\\n        +\*
-# \|   \|                                \*  2\|localhost:\d+ \(\) +\*
-# \|   \|                                \*  3\|/baz/abc\?foo      +\*
-# \+---\+--------------------------------\+---\+-------------------+\+
+# \+---\+--------------------------------+\+---\+-------------------+\+
+# \| Ln\|Got                             +\| Ln\|Expected           +\|
+# \+---\+--------------------------------+\+---\+-------------------+\+
+# \*  1\|'?302 http://hoge.test/abc\?foo\\n +\*  1\|'?200\\s\\n     +\*
+# [*|] +2?\|'?                           +\*  2\|localhost:\d+ \(\)(?:\\n)? +\*
+# \|   \|                                +\*  3\|/baz/abc\?foo'?    +\*
+# \+---\+--------------------------------+\+---\+-------------------+\+
 ];
     
     $apache->stop_apache;
@@ -70,9 +70,9 @@ sub _is_redirect : Test(3) {
 # \+---\+---------------------------+\+---\+-----------------------------+\+
 # \| Ln\|Got                        +\| Ln\|Expected                     +\|
 # \+---\+---------------------------+\+---\+-----------------------------+\+
-# \*  1\|200\\s\\n                  +\*  1\|302 http://hoge.test/abc\?foo\\n +\*
-# \*  2\|localhost:\d+ \(BackendFoo\) +\* +\|                            +\|
-# \*  3\|/123                       +\*   \|                             +\|
+# \*  1\|'?200\\s\\n                +\*  1\|'?302 http://hoge.test/abc\?foo\\n +\*
+# \*  2\|localhost:\d+ \(BackendFoo\)(?:\\n)? +[*|] +2?\|'?              +[*|]
+# \*  3\|/123'?                     +\*   \|                             +\|
 # \+---\+---------------------------+\+---\+-----------------------------+\+
 ];
     
@@ -221,7 +221,8 @@ sub _copy_conf_as_f_recursive : Test(12) {
     unlike $result_i2, qr/\Q@{[$i1_f->stringify]}\E/;
 }
 
-__PACKAGE__->SKIP_CLASS('Apache is not available') unless Test::Apache::RewriteRules->available;
+BAIL_OUT 'Apache is not available'
+    unless Test::Apache::RewriteRules->available;
 
 __PACKAGE__->runtests;
 
