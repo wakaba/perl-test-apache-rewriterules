@@ -45,8 +45,8 @@ C<apache.conf> Apache configuration.
 =item $apache = Test::Apache::RewriteRules->available;
 
 Returns whether the features provided by this module is available or
-not.  At the time of writing, it returns false is no Apache binary is
-found.
+not.  At the time of writing, it returns false if no Apache C<httpd>
+executable is found.
 
 =item $apache = Test::Apache::RewriteRules->new;
 
@@ -168,7 +168,7 @@ C<t/test/apache-rewriterules*.conf>.
 =head1 DEPENDENCY
 
 Apparently, the module depends on Apache HTTP Server.  It requires
-version 2 of Apache with appropriate modules installed.
+Apache 2.2 with appropriate modules installed.
 
 The module also requires Perl 5.8 or later, as well as modules:
 L<Exporter::Lite>, L<Path::Class>, L<Test::Differences>,
