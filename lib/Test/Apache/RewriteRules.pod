@@ -141,10 +141,35 @@ in the HTTP C<Host:> request header field) can be specified by
 prepending C<//> followed by host (hostname optionally followed by
 C<:> and port number) before the real path.
 
+=head1 ENVIRONMENT VARIABLE
+
+If the environment variable L<TEST_APACHE_HTTPD> is set, the value is
+used as the path to the Apache's C<httpd> executable.  If the variable
+is not specified, but the Perl global variable
+C<$Test::Apache::RewriteRules::HttpdPath> is set to a non-default
+value, the value is used as the path to the C<httpd>.  Otherwise, the
+C<httpd> file is searched from commonly-installed paths.  If the
+specified path is invalid, or no C<httpd> is found at all, the module
+bails out.
+
 =head1 EXAMPLES
 
 See C<t/test/apache-rewriterules*.t> and
 C<t/test/apache-rewriterules*.conf>.
+
+=head1 DEPENDENCY
+
+Apparently, the module depends on Apache HTTP Server.  It requires
+version 2 of Apache with appropriate modules installed.
+
+The module also requires Perl 5.8 or later, as well as modules:
+L<Exporter::Lite>, L<Path::Class>, L<Test::Differences>,
+L<LWP::UserAgent>, and L<HTTP::Request>.
+
+=head1 DEVELOPMENT
+
+Latest version of the module is available in the GitHub repository
+<https://github.com/wakaba/perl-test-apache-rewriterules>.
 
 =head1 HISTORY
 
@@ -182,12 +207,22 @@ Wakaba (id:wakabatan) <wakabatan@hatena.ne.jp>.
 
 =head1 ACKNOWLEDGEMENTS
 
+This module was originally developed as part of Ugomemo Hatena
+project, then improved at Hatena Application Platform Development
+Team.
+
 Thanks to Kentaro Kuribayashi (id:antipop) and id:shiba_yu36 for their
 contributions.
+
+The repository contains a copy of L<Net::TCP::FindPort> module, whose
+latest version is available from
+<https://github.com/wakaba/perl-net-tcp-findport>.
 
 =head1 LICENSE
 
 Copyright 2010-2011 Hatena <http://www.hatena.ne.jp/>.
+
+Copyright 2012 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

@@ -7,6 +7,7 @@ use Path::Class;
 use Test::Apache::RewriteRules::Net::TCP::FindPort;
 use LWP::UserAgent;
 use HTTP::Request;
+use Test::More;
 use Test::Differences;
 use Time::HiRes qw(usleep);
 
@@ -18,12 +19,37 @@ my $data_d = file(__FILE__)->dir->subdir('RewriteRules')->absolute->cleanup;
     1 while $dn =~ s[(^|/)(?!\.\./)[^/]+/\.\.(?=$|/)][$1]g;
     $data_d = dir($dn);
 }
-my $modules_f = $data_d->file('modules.conf');
 my $backend_d = $data_d;
+
 our $HttpdPath = '/usr/sbin/httpd';
+our $FoundHTTPDPath;
+
+sub search_httpd () {
+    return if $FoundHTTPDPath and -x $FoundHTTPDPath;
+    for (
+        $ENV{TEST_APACHE_HTTPD},
+        $HttpdPath eq '/usr/sbin/httpd' ? undef : $HttpdPath,
+        'local/apache/httpd-2.4/bin/httpd',
+        'local/apache/httpd-2.2/bin/httpd',
+        'local/apache/httpd-2.0/bin/httpd',
+        '/usr/sbin/apache2',
+        $HttpdPath eq '/usr/sbin/httpd' ? $HttpdPath : undef,
+        '/usr/sbin/httpd',
+        '/usr/local/sbin/httpd',
+        '/usr/local/apache/bin/httpd',
+    ) {
+        next unless defined $_;
+        if (-x $_) {
+            $FoundHTTPDPath = $_;
+            note "Found Apache httpd: $FoundHTTPDPath";
+            last;
+        }
+    }
+}
 
 sub available {
-    return -x $HttpdPath;
+    search_httpd;
+    return $FoundHTTPDPath && -x $FoundHTTPDPath;
 }
 
 sub new {
@@ -174,6 +200,15 @@ sub pid_f {
     return $self->{pid_f} ||= $self->server_root_d->file('apache.pid');
 }
 
+sub builtin_modules {
+    my $self = shift;
+    return $self->{builtin_modules} if $self->{builtin_modules};
+    my $result;
+    $self->run_httpd(['-l'], stdout => \$result) or
+        return $self->{builtin_modules} = {};
+    return $self->{builtin_modules} = {map { s/^\s+//; s/\s+$//; $_ => 1 } grep { /^ / } split /\n/, $result};
+}
+
 sub conf_f {
     my $self = shift;
     return $self->{conf_f} ||= $self->server_root_d->file('apache.conf');
@@ -217,13 +252,21 @@ Listen $port
 ];
     }
 
+    my $modules = $self->builtin_modules;
+
     my $conf_file_name = $self->conf_f->stringify;
     open my $conf_f, '>', $conf_file_name or die "$0: $conf_file_name: $!";
+
+    for (qw(
+        log_config setenvif alias rewrite authn_file authz_host auth_basic
+        mime ssl proxy proxy_http cgi actions
+    )) {
+        printf $conf_f "LoadModule %s_module modules/mod_%s.so\n", $_, $_
+            unless $modules->{"mod_$_.c"};
+    }
     
     print $conf_f qq[
 LogLevel debug
-
-Include "$modules_f"
 
 ServerRoot $server_root_dir_name
 PidFile $pid_f
@@ -262,16 +305,41 @@ sub conf_generated {
     return $self->{conf_generated};
 }
 
+sub run_httpd {
+    my ($self, $args, %opt) = @_;
+    search_httpd;
+    unless (-x $FoundHTTPDPath) {
+        warn "$0: Can't find httpd\n";
+        return 0;
+    }
+    if ($opt{stdout}) {
+        if (open my $file, '-|', $FoundHTTPDPath, @$args) {
+            local $/ = undef;
+            ${$opt{stdout}} = <$file>;
+        }
+    } else {
+        system $FoundHTTPDPath, @$args;
+    }
+    if ($? == -1) {
+        warn "$0: $FoundHTTPDPath: $!\n";
+        return 0;
+    } elsif ($? & 127) {
+        warn "$0: $FoundHTTPDPath: " . ($? & 127) . "\n";
+        return 0;
+    } elsif ($? >> 8 != 0) {
+        warn "$0: $FoundHTTPDPath: Exit with status " . ($? >> 8) . "\n";
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
 sub start_apache {
     my $self = shift;
     $self->generate_conf unless $self->conf_generated;
     my $conf = $self->conf_file_name or die;
-    system $HttpdPath, -f => $conf, -k => 'start';
-    if ($? == -1) {
-        die "$0: $HttpdPath: $!";
-    } elsif ($? & 127) {
-        die "$0: $HttpdPath: " . ($? & 127);
-    }
+    $self->run_httpd(['-f' => $conf, '-k' => 'start'])
+        or BAIL_OUT "Can't start apache";
     $self->wait_for_starting_apache;
 }
 
@@ -284,7 +352,7 @@ sub wait_for_starting_apache {
     while (not -f $pid_f) {
         usleep 10_000;
         if ($i++ >= 100_00) {
-            die "$0: $HttpdPath: Apache does not start in 100 seconds";
+            die "$0: $FoundHTTPDPath: Apache does not start in 100 seconds";
         }
     }
 }
@@ -293,10 +361,10 @@ sub stop_apache {
     my $self = shift;
     my $conf = $self->conf_file_name or die;
     for (1..5) {
-        system $HttpdPath, -f => $conf, -k => 'stop';
+        $self->run_httpd(['-f' => $conf, '-k' => 'stop']) or next;
         return if $self->wait_for_stopping_apache;
     }
-    die "$0: $HttpdPath: Cannot stop apache\n";
+    die "$0: $FoundHTTPDPath: Cannot stop apache\n";
 }
 
 sub wait_for_stopping_apache {
@@ -308,7 +376,7 @@ sub wait_for_stopping_apache {
     while (-f $pid_f) {
         usleep 10_000;
         if ($i++ >= 10_00) {
-            warn "$0: $HttpdPath: Apache does not end in 10 seconds\n";
+            warn "$0: $FoundHTTPDPath: Apache does not end in 10 seconds\n";
             return 0;
         }
     }
