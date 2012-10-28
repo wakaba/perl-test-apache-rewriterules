@@ -268,6 +268,7 @@ Listen $port
     print $conf_f qq[
 LogLevel debug
 
+ServerName test
 ServerRoot $server_root_dir_name
 PidFile $pid_f
 CustomLog logs/access_log "%v\t%h %l %u %t %r %>s %b"
