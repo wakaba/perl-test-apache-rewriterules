@@ -152,6 +152,11 @@ C<httpd> file is searched from commonly-installed paths.  If the
 specified path is invalid, or no C<httpd> is found at all, the module
 bails out.
 
+Likewise, the environment variable L<TEST_APACHE_APXS> can be used to
+specify the path to the C<apxs> command of Apache.  However, you
+usually don't have to specify this, as C<apxs> is usually installed at
+the same location as C<httpd>.
+
 If the environment variable C<TEST_APACHE_DEBUG> is set to a true
 value, or the Perl global variable
 C<$Test::Apache::RewriteRules::DEBUG> is set to a true value, then the

@@ -23,6 +23,7 @@ my $backend_d = $data_d;
 
 our $HttpdPath = '/usr/sbin/httpd';
 our $FoundHTTPDPath;
+our $FoundAPXSPath;
 
 sub search_httpd () {
     return if $FoundHTTPDPath and -x $FoundHTTPDPath;
@@ -42,6 +43,19 @@ sub search_httpd () {
         if (-x $_) {
             $FoundHTTPDPath = $_;
             note "Found Apache httpd: $FoundHTTPDPath";
+            last;
+        }
+    }
+
+    my $apxs_expected = $FoundHTTPDPath;
+    $apxs_expected =~ s{/(?:httpd|apache2)$}{/apxs};
+    for (
+        $ENV{TEST_APACHE_APXS},
+        $apxs_expected,
+    ) {
+        next unless defined $_;
+        if (-x $_) {
+            $FoundAPXSPath = $_;
             last;
         }
     }
@@ -209,6 +223,19 @@ sub builtin_modules {
     return $self->{builtin_modules} = {map { s/^\s+//; s/\s+$//; $_ => 1 } grep { /^ / } split /\n/, $result};
 }
 
+sub dso_path {
+    search_httpd;
+    if ($FoundAPXSPath) {
+        return $_[0]->{dso_path} ||= do {
+            my $path = `$FoundAPXSPath -q LIBEXECDIR`;
+            chomp $path;
+            $path;
+        };
+    } else {
+        return 'modules';
+    }
+}
+
 sub conf_f {
     my $self = shift;
     return $self->{conf_f} ||= $self->server_root_d->file('apache.conf');
@@ -254,14 +281,27 @@ Listen $port
 
     my $modules = $self->builtin_modules;
 
+    my $mime_types_f = $self->server_root_d->file('mime.types');
+    print { $mime_types_f->openw } q{
+text/plain txt
+text/html html
+text/css css
+text/javascript js
+image/gif gif
+image/png png
+image/jpeg jpeg jpg
+image/vnd.microsoft.icon ico
+    };
+
     my $conf_file_name = $self->conf_f->stringify;
     open my $conf_f, '>', $conf_file_name or die "$0: $conf_file_name: $!";
 
+    my $dso_path = $self->dso_path;
     for (qw(
         log_config setenvif alias rewrite authn_file authz_host auth_basic
         mime ssl proxy proxy_http cgi actions
     )) {
-        printf $conf_f "LoadModule %s_module modules/mod_%s.so\n", $_, $_
+        printf $conf_f "LoadModule %s_module $dso_path/mod_%s.so\n", $_, $_
             unless $modules->{"mod_$_.c"};
     }
     
@@ -271,8 +311,9 @@ LogLevel debug
 ServerName test
 ServerRoot $server_root_dir_name
 PidFile $pid_f
+LockFile $server_root_dir_name/accept.lock
 CustomLog logs/access_log "%v\t%h %l %u %t %r %>s %b"
-TypesConfig /etc/mime.types
+TypesConfig $mime_types_f
 
 Listen $proxy_port
 <VirtualHost *:$proxy_port>
@@ -339,6 +380,7 @@ sub start_apache {
     my $self = shift;
     $self->generate_conf unless $self->conf_generated;
     my $conf = $self->conf_file_name or die;
+    warn "Starting apache with $conf...\n" if $DEBUG;
     $self->run_httpd(['-f' => $conf, '-k' => 'start'])
         or BAIL_OUT "Can't start apache";
     $self->wait_for_starting_apache;
