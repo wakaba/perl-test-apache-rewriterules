@@ -322,6 +322,7 @@ Listen $proxy_port
   $backend_setenvs
 
   RewriteRule ^/url\\.cgi/ - [L]
+  Alias /url.cgi $proxy_document_root_d/url.cgi
   RewriteLog logs/rewrite_log
   RewriteLogLevel 9
 
